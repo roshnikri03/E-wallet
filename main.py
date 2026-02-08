@@ -220,3 +220,281 @@ def delete_member_api(member_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Member not found")
     crud.delete_member(db=db, member_id=member_id)
     return {"message": "Member deleted successfully"}
+
+#creating a new currrency
+@app.post("/country_info/", response_model=schemas.Country_Info)
+def create_country_info(country_info: schemas.add_country, db: Session = Depends(get_db)):
+    try:
+        return crud.create_country_info(db=db, country_info=country_info)
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+
+@app.get("/country_info/{country_id}", response_model=schemas.Country_Info)
+def read_country_info(country_id: int, db: Session = Depends(get_db)):
+    db_country_info = crud.get_country_info(db=db, country_id=country_id)
+    if db_country_info is None:
+        raise HTTPException(status_code=404, detail="Country info not found")
+    return db_country_info
+
+@app.get("/country_info/", response_model=list[schemas.Country_Info])
+def read_all_country_info(db: Session = Depends(get_db)):
+    return crud.get_all_country_info(db=db)
+
+@app.put("/country_info/{country_id}", response_model=schemas.Country_Info)
+def update_country_info(country_id: int, country_info: schemas.update_country, db: Session = Depends(get_db)):
+    db_country_info = crud.update_country_info(db=db, country_id=country_id, country_info=country_info)
+    if db_country_info is None:
+        raise HTTPException(status_code=404, detail="Country info not found")
+    return db_country_info
+
+@app.delete("/country_info/{country_id}", response_model=schemas.Country_Info)
+def delete_country_info(country_id: int, db: Session = Depends(get_db)):
+    db_country_info = crud.delete_country_info(db=db, country_id=country_id)
+    if db_country_info is None:
+        raise HTTPException(status_code=404, detail="Country info not found")
+    return db_country_info
+# API's for operations of currency_supported entity
+
+# Adding a New currency 
+@app.post("/currency_supported/", response_model=schemas.currency_supported)
+def add_currency_api(currency_supported: schemas.add_currency,  db: Session = Depends(get_db)):
+    try:
+        return crud.add_currency(db=db, currency_supported=currency_supported)
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    
+
+    
+ #get all currencies
+@app.get("/currency_supported/", response_model=List[schemas.currency_supported])
+def read_currencies_api(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    query = "SELECT * FROM Currency_Supported"
+    mycursor.execute(query, {"limit": limit, "skip": skip})
+    currency = mycursor.fetchall()
+    return [
+        schemas.currency_supported(
+            currency_id=row[0],
+            status=row[1],
+            USD_equivalent=row[2],
+            currency_info_id =row[3],
+
+        )
+        for row in currency
+    ]
+  
+
+    
+#corrected
+# get a specific currency by id
+@app.get("/currency_supported/{currency_id}", response_model=schemas.currency_supported)
+def read_currency_api(currency_id: int, db: Session = Depends(get_db)):
+    query = "SELECT * FROM Currency_Supported WHERE  currency_id = %s"
+    mycursor.execute(query, ( currency_id,))
+    currency = mycursor.fetchone()
+    if currency is None:
+        raise HTTPException(status_code=404, detail="Currency not found")
+    return schemas.currency_supported(
+            currency_id=currency[0],
+            status=currency[1],
+            USD_equivalent=currency[2],
+            currency_info_id =currency[3],
+           
+        )
+
+@app.put("/currency_supported/{currency_id}", response_model=schemas.currency_supported)
+def update_currency_api(currency_id: int, currency_update: schemas.update_currency, db: Session = Depends(get_db)):
+    query = text("""
+        UPDATE currency_supported 
+        SET 
+            status = :status,
+            USD_equivalent = :usd_equivalent
+        WHERE currency_id = :currency_id
+    """)
+
+    values = {
+        "currency_id": currency_id,
+        "status": currency_update.status,
+        "usd_equivalent": currency_update.USD_equivalent,
+    }
+
+    db.execute(query, values)
+    db.commit()
+
+    updated_currency = crud.get_currency(db, currency_id=currency_id)
+    if updated_currency is None:
+        raise HTTPException(status_code=404, detail="Currency not found")
+
+    return updated_currency
+
+
+
+#to be corrected
+@app.delete("/currency_supported/{currency_id}", response_model=schemas.currency_supported)
+def delete_currency_api(currency_id: int, db: Session = Depends(get_db)):
+    currency_supported = crud.delete_currency_info(db=db,currency_id = currency_id)
+    if currency_supported is None:
+        raise HTTPException(status_code=404, detail="Currency Supported not found")
+
+    db.delete(currency_supported)
+    db.commit()
+
+    # Return a response indicating a successful deletion
+    return {"message": "Currency Supported deleted successfully"}
+
+#Api's for currency_info
+#Corrected
+@app.post("/currency_info/", response_model=schemas.currency_info)
+def add_currency_info_api(currency_info: schemas.add_currency_info,  db: Session = Depends(get_db)):
+    try:
+        return crud.add_currency_info(db=db, currency_info=currency_info)
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    
+
+    
+ #get all currencies
+@app.get("/currency_info/", response_model=List[schemas.currency_info])
+def read_currencies_info_api(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    query = "SELECT * FROM Currency_info"
+    mycursor.execute(query, {"limit": limit, "skip": skip})
+    currency = mycursor.fetchall()
+    return [
+        schemas.currency_info(
+            currency_info_id=row[0],
+            currency_name=row[1],
+            currency_symbol=row[2],
+          
+        )
+        for row in currency
+    ]
+  
+
+    
+#corrected
+# get a specific currency by id
+@app.get("/currecny_info/{currency_info_id}", response_model=schemas.currency_info)
+def read_currency_info_api(currency_info_id: int, db: Session = Depends(get_db)):
+    query = "SELECT * FROM Currency_info WHERE  currency_info_id = %s"
+    mycursor.execute(query, ( currency_info_id,))
+    currency = mycursor.fetchone()
+    if currency is None:
+        raise HTTPException(status_code=404, detail="Currency info not found")
+    return schemas.currency_info(
+            currency_info_id=currency[0],
+            currency_name=currency[1],
+            currency_symbol=currency[2],
+           
+        )
+
+@app.put("/currency_info/{currency_info_id}", response_model=schemas.currency_info)
+def update_currency_info_api(currency_info_id: int, currency_info_update: schemas.update_currency_info, db: Session = Depends(get_db)):
+    query = text("""
+        UPDATE currency_info 
+        SET currency_name = :currency_name, 
+            currency_symbol = :currency_symbol
+        WHERE currency_info_id = :currency_info_id
+    """)
+
+    values = {
+        "currency_info_id": currency_info_id,
+        "currency_name": currency_info_update.currency_name,
+        "currency_symbol": currency_info_update.currency_symbol,
+    }
+
+    db.execute(query, values)
+    db.commit()
+
+    updated_currency_info = crud.get_currency_info(db, currency_info_id= currency_info_id)
+    if updated_currency_info is None:
+        raise HTTPException(status_code=404, detail="Currency info not found")
+
+    return updated_currency_info
+
+@app.delete("/currency_info/{currency_info_id}", response_model=schemas.currency_info)
+def delete_currency_api(currency_info_id: int, db: Session = Depends(get_db)):
+    db_currency_info = crud.delete_currency_info(db, currency_info_id=currency_info_id)
+    if db_currency_info is None:
+        raise HTTPException(status_code=404, detail="Currency info not found")
+    return db_currency_info
+
+
+# API's for operations of currency_supported entity
+
+#APIs for Deposit entity
+
+
+@app.post("/withdrawals/", response_model=schemas.Withdrawal)
+def create_withdrawal(withdrawal: schemas.WithdrawalCreate, db: Session = Depends(get_db)):
+    return crud.create_withdrawal(db, withdrawal)
+
+
+@app.get("/withdrawals/{withdrawal_id}", response_model=schemas.Withdrawal)
+def get_withdrawal(withdrawal_id: int, db: Session = Depends(get_db)):
+    query = "SELECT * FROM withdrawals WHERE  withdrawal_id = %s"
+    mycursor.execute(query, ( withdrawal_id,))
+    withdrawal = mycursor.fetchone()
+    if  withdrawal is None:
+        raise HTTPException(status_code=404, detail="Withdrawal not found")
+    return schemas.Withdrawal(
+            withdrawal_id= withdrawal[0],
+            transaction_code= withdrawal[1],
+            amount= withdrawal[2],
+            charged= withdrawal[3],
+            to_receive= withdrawal[4],
+            date_time= withdrawal[5],
+            method= withdrawal[6],
+            status= withdrawal[7],
+            remarks= withdrawal[8],
+            member_id= withdrawal[9],
+            
+        )
+
+
+@app.get("/withdrawals/", response_model=list[schemas.Withdrawal])
+def get_all_withdrawals(db: Session = Depends(get_db)):
+    query = "SELECT * FROM withdrawals"
+    mycursor.execute(query)
+    withdrawal = mycursor.fetchall()
+    return [
+        schemas.Withdrawal(
+            withdrawal_id=row[0],
+            transaction_code=row[1],
+            amount=row[2],
+            charged=row[3],
+            to_receive=row[4],
+            date_time=row[5],
+            method=row[6],
+            status=row[7],
+            remarks=row[8],
+            member_id=row[9],
+            
+        )
+        for row in withdrawal
+    ]
+
+
+
+#Corrected
+@app.put("/withdrawals/{withdrawal_id}", response_model=schemas.Withdrawal)
+def update_withdrawal(withdrawal_id: int, withdrawal: schemas.WithdrawalUpdate, db: Session = Depends(get_db)):
+    db_withdrawal = db.query(models.Withdrawal).get(withdrawal_id)
+    if not db_withdrawal:
+        raise HTTPException(status_code=404, detail="Withdrawal not found")
+    
+    # Update the withdrawal object with the provided data
+    db_withdrawal.transaction_code = withdrawal.transaction_code
+    db_withdrawal.amount = withdrawal.amount
+    db_withdrawal.charged = withdrawal.charged
+    db_withdrawal.to_receive = withdrawal.to_receive
+    db_withdrawal.date_time = withdrawal.date_time
+    db_withdrawal.method = withdrawal.method
+    db_withdrawal.status = withdrawal.status
+    db_withdrawal.remarks = withdrawal.remarks
+    db_withdrawal.member_id = withdrawal.member_id
+    
+    db.commit()
+    db.refresh(db_withdrawal)
+
+    return db_withdrawal
