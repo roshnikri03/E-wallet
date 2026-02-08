@@ -498,3 +498,402 @@ def update_withdrawal(withdrawal_id: int, withdrawal: schemas.WithdrawalUpdate, 
     db.refresh(db_withdrawal)
 
     return db_withdrawal
+
+@app.delete("/withdrawals/{withdrawal_id}")
+def delete_withdrawal(withdrawal_id: int, db: Session = Depends(get_db)):
+    db_withdrawal = crud.get_withdrawal(db, withdrawal_id)
+    if db_withdrawal is None:
+        raise HTTPException(status_code=404, detail="Withdrawal not found")
+    return crud.delete_withdrawal(db, withdrawal_id)
+
+# API's for operations of Deposit entity
+
+# Adding a New Deposit 
+@app.post("/Deposit/", response_model=schemas.Deposit)
+def add_deposit(deposit: schemas.DepositCreate,  db: Session = Depends(get_db)):
+    try:
+        return crud.create_deposit(db=db, deposit= deposit)
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    
+ #get all deposits
+@app.get("/Deposit/", response_model=List[schemas.Deposit])
+def read_deposits(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    query = "SELECT * FROM Deposits"
+    mycursor.execute(query)
+    Deposits = mycursor.fetchall()
+    return [
+        schemas.Deposit(
+            id =row[0],
+            transaction_code=row[1],
+            member_id=row[2],
+            deposit_amount=row[3],
+            currency_id =row[4],
+            date_time=row[5],
+            gateway_id=row[6],
+            status_id = row[7],
+        )
+        for row in Deposits
+    ]
+# Corrected
+# get a specific deposit by id
+@app.get("/Deposit/{deposit_id}", response_model=schemas.Deposit)
+def read_deposit(deposit_id: int, db: Session = Depends(get_db)):
+    query = "SELECT * FROM Deposits WHERE  id = %s"
+    mycursor.execute(query, ( deposit_id,))
+    deposit = mycursor.fetchone()
+    if  deposit  is None:
+        raise HTTPException(status_code=404, detail="Deposit not found")
+    return schemas.Deposit(
+            id = deposit[0],
+            transaction_code= deposit[1],
+            member_id= deposit[2],
+            deposit_amount= deposit[3],
+            currency_id = deposit[4],
+            date_time= deposit[5],
+            gateway_id= deposit[6],
+            status_id = deposit[7],
+        )
+
+# update a deposit by id
+@app.put("/Deposit/{deposit_id}", response_model=schemas.Deposit)
+def update_deposit(deposit_id: int, deposit_update: schemas.DepositUpdate, db: Session = Depends(get_db)):
+    query = text("""
+        UPDATE Deposits 
+        SET transaction_code = :transaction_code, 
+            deposit_amount = :deposit_amount,
+            date_time = :date_time
+        WHERE id = :deposit_id
+    """)
+
+    values = {
+        "deposit_id": deposit_id,
+        "transaction_code": deposit_update.transaction_code,
+        "deposit_amount": deposit_update.deposit_amount,
+        "date_time": deposit_update.date_time,
+    }
+
+    db.execute(query, values)
+    db.commit()
+
+    updated_deposit = crud.get_deposit(db, deposit_id)
+    if updated_deposit is None:
+        raise HTTPException(status_code=404, detail="Deposit not found")
+
+    return updated_deposit
+
+#Corrected
+ 
+# delete a deposit by id
+@app.delete("/Deposit/{deposit_id}", response_model=schemas.Deposit)
+def delete_deposit(deposit_id: int, db: Session = Depends(get_db)):
+    db_deposit = crud.delete_deposit(db, deposit_id =deposit_id)
+    if db_deposit is None:
+        raise HTTPException(status_code=404, detail="deposit not found")
+    return db_deposit
+
+
+ #API's to for deposit status
+@app.post("/Deposit_status/", response_model=schemas.deposit_status)
+def add_deposit_status(deposit: schemas.add_deposit_status,  db: Session = Depends(get_db)):
+    try:
+        return crud.create_deposit_status(db=db, deposit= deposit)
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    
+
+    
+ #get all deposits
+@app.get("/Deposit_status/", response_model=List[schemas.deposit_status])
+def read_statuses(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    query = "SELECT * FROM Deposit_Status"
+    mycursor.execute(query)
+    Deposits = mycursor.fetchall()
+    return [
+        schemas.deposit_status(
+            status_id =row[0],
+            status=row[1],
+            remarks =row[2],
+        )
+        for row in Deposits
+    ]
+# Corrected
+# get a specific deposit by id
+@app.get("/Deposit_status/{status_id}", response_model=schemas.deposit_status)
+def read_deposit_status(status_id: int, db: Session = Depends(get_db)):
+    query = "SELECT * FROM  Deposit_Status WHERE  status_id = %s"
+    mycursor.execute(query, ( status_id,))
+    deposit = mycursor.fetchone()
+    if  deposit  is None:
+        raise HTTPException(status_code=404, detail="Status not found")
+    return schemas.deposit_status(
+            status_id = deposit[0],
+            status= deposit[1],
+            remarks = deposit[2],
+            
+            
+        )
+# TO BE corrected
+@app.put("/Deposit_status/{status_id}", response_model=schemas.deposit_status)
+def update_deposit_status(status_id: int, status_update: schemas.update_status, db: Session = Depends(get_db)):
+    query = text("""
+        UPDATE  Deposit_Status
+        SET   status = :status,
+            remarks = :remarks
+        WHERE status_id = :status_id
+    """)
+
+    values = {
+        "status_id": status_id,
+        "status": status_update.status,
+        "remarks": status_update.remarks,
+    }
+
+    db.execute(query, values)
+    db.commit()
+
+    updated_deposit = crud.get_deposit(db, status_id)
+    if updated_deposit is None:
+        raise HTTPException(status_code=404, detail="Status not found")
+
+    return updated_deposit
+
+
+# delete a deposit by id
+@app.delete("/Deposit_status/{status_id}", response_model=schemas.deposit_status)
+def delete_deposit_status(status_id: int, db: Session = Depends(get_db)):
+    db_deposit = crud.delete_deposit_status(db, status_id = status_id)
+    if db_deposit is None:
+        raise HTTPException(status_code=404, detail=" Status not found")
+    return db_deposit  
+
+
+
+
+# API's for operations of Gateway entity
+# Adding a New Gateway 
+@app.post("/Gateway/", response_model=schemas.gateway)
+def add_gateway_api(gateway: schemas.add_gateway,  db: Session = Depends(get_db)):
+    try:
+        return crud.add_gateway(db=db, gateway=gateway)
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    
+ #get all Gateways
+@app.get("/Gateway/", response_model=List[schemas.gateway])
+def read_gateways_api(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    query = "SELECT * FROM Gateway"
+    mycursor.execute(query)
+    gateway = mycursor.fetchall()
+    return [
+        schemas.gateway(
+            gateway_id  =row[0],
+            gateway_name=row[1],
+            gateway_status=row[2],
+            gateway_type=row[3],
+        )
+        for row in gateway
+    ]
+    
+#Corrected
+# get a specific gateway by id
+@app.get("/Gateway/{gateway_id}", response_model=schemas.gateway)
+def read_gateway_api(gateway_id: int, db: Session = Depends(get_db)):
+    query = "SELECT * FROM Gateway WHERE  gateway_id = %s"
+    mycursor.execute(query, (gateway_id ,))
+    gateway = mycursor.fetchone()
+    if  gateway is None:
+        raise HTTPException(status_code=404, detail=" Gateway not found")
+    return schemas.gateway(
+            gateway_id  =gateway[0],
+            gateway_name=gateway[1],
+            gateway_status=gateway[2],
+            gateway_type=gateway[3],
+           
+        )
+#Corrected 
+# update a gateway by id
+@app.put("/Gateway/{gateway_id}", response_model=schemas.gateway)
+def update_gateway_api(gateway_id: int, gateway_update: schemas.update_gateway, db: Session = Depends(get_db)):
+    query = text("""
+        UPDATE Gateway
+        SET gateway_name = :gateway_name,
+            gateway_status = :gateway_status,
+            gateway_type = :gateway_type
+        WHERE gateway_id = :gateway_id
+    """)
+
+    values = {
+        "gateway_id": gateway_id,
+        "gateway_name": gateway_update.gateway_name,
+        "gateway_status": gateway_update.gateway_status,
+        "gateway_type": gateway_update.gateway_type,
+    }
+
+    db.execute(query, values)
+    db.commit()
+
+    updated_gateway = crud.get_gateway(db, gateway_id)
+    if updated_gateway is None:
+        raise HTTPException(status_code=404, detail="Gateway not found")
+
+    return updated_gateway
+
+
+#Corrected
+# # delete a gateway by id
+# @app.delete("/Gateway/{gateway_id}", response_model=schemas.gateway)
+# def delete_gateway_api(gateway_id: int, db: Session = Depends(get_db)):
+#     db_gateway = crud.get_gateway(db, gateway_id= gateway_id)
+#     if db_gateway is None:
+#         raise HTTPException(status_code=404, detail="gateway not found")
+#     return crud.delete_gateway(db=db,gateway_id= gateway_id)  
+
+@app.delete("/Gateway/{gateway_id}", response_model=schemas.gateway)
+def delete_gateway_api(gateway_id: int, db: Session = Depends(get_db)):
+    db_gateway = crud.get_gateway(db, gateway_id=gateway_id)
+    if db_gateway is None:
+        raise HTTPException(status_code=404, detail="Gateway not found")
+    return crud.delete_gateway(db=db, gateway_id=gateway_id) 
+
+@app.put("/transaction_logs/{transaction_log_id}", response_model=schemas.TransactionLog)
+def update_transaction_log(transaction_log_id: int, transaction_log_update: schemas.TransactionLogUpdate, db: Session = Depends(get_db)):
+    query = text("""
+        UPDATE transaction_logs 
+        SET transaction_type = :transaction_type, 
+            amount = :amount,
+            status = :status
+        WHERE transaction_log_id = :log_id
+    """)
+
+    values = {
+        "log_id": transaction_log_id,
+        "transaction_type": transaction_log_update.transaction_type,
+        "amount": transaction_log_update.amount,
+        "status": transaction_log_update.status,
+    }
+
+    db.execute(query, values)
+    db.commit()
+
+    updated_transaction_log = crud.get_transaction_log(db, transaction_log_id)
+    if updated_transaction_log is None:
+        raise HTTPException(status_code=404, detail="Transaction Log not found")
+
+    return {"message":"log updated successfully"}
+
+
+#APIs for Transaction logs 
+@app.post("/transaction_logs/", response_model=schemas.TransactionLog)
+def create_transaction_log(transaction_log: schemas.TransactionLogCreate, db: Session = Depends(get_db)):
+    return crud.create_transaction_log(db, transaction_log)
+
+
+@app.get("/transaction_logs/{transaction_log_id}", response_model=schemas.TransactionLog)
+def get_transaction_log(transaction_log_id: int, db: Session = Depends(get_db)):
+    query = "SELECT * FROM transaction_logs WHERE   transaction_log_id  = %s"
+    mycursor.execute(query, (transaction_log_id ,))
+    transaction_log = mycursor.fetchone()
+    if transaction_log is None:
+        raise HTTPException(status_code=404, detail="transaction_log  not found")
+    return schemas.TransactionLog(
+            transaction_log_id=transaction_log[0],
+            member_id=transaction_log[1],
+            transaction_type=transaction_log[2],
+            amount=transaction_log[3],
+            status=transaction_log[4],
+ 
+        )
+    
+
+
+@app.get("/transaction_logs/", response_model=list[schemas.TransactionLog])
+def get_all_transaction_logs(db: Session = Depends(get_db)):
+    query = "SELECT * FROM transaction_logs"
+    mycursor.execute(query)
+    transaction_logs = mycursor.fetchall()
+    return [
+        schemas.TransactionLog(
+            transaction_log_id=row[0],
+            member_id=row[1],
+            transaction_type=row[2],
+            amount=row[3],
+            status=row[4],
+
+        )
+        for row in transaction_logs
+    ]
+
+#update transaction log
+#need to be corrected
+@app.put("/transaction_logs/{transaction_log_id}", response_model=schemas.TransactionLog)
+def update_transaction_log(transaction_log_id: int, transaction_log_update: schemas.TransactionLogUpdate,
+                          db: Session = Depends(get_db)):
+    query = text("""
+        UPDATE transaction_logs 
+        SET transaction_type = :transaction_type, 
+            amount = :amount,
+            status = :status
+        WHERE transaction_log_id = :log_id
+    """)
+
+    values = {
+        "log_id": transaction_log_id,
+        "transaction_type": transaction_log_update.transaction_type,
+        "amount": transaction_log_update.amount,
+        "status": transaction_log_update.status,
+    }
+
+    db.execute(query, values)
+    db.commit()
+
+    updated_transaction_log = crud.update_transaction_log(db, transaction_log_id, transaction_log_update)
+    if updated_transaction_log is None:
+        raise HTTPException(status_code=404, detail="Transaction Log not found")
+
+    return updated_transaction_log
+
+
+@app.delete("/transaction_logs/{transaction_log_id}")
+def delete_transaction_log(transaction_log_id: int, db: Session = Depends(get_db)):
+    db_transaction_log = crud.get_transaction_log(db, transaction_log_id)
+    if db_transaction_log is None:
+        raise HTTPException(status_code=404, detail="Transaction Log not found")
+    return crud.delete_transaction_log(db, transaction_log_id)
+
+
+@app.get("/members__transaction_status/{member_id}", response_model=schemas.MemberTransactionStatus)
+def get_member_transaction_status(member_id: int ,db: Session = Depends(get_db)):
+
+    # Perform the query to retrieve member information and transaction status
+    query = db.query(models.Member, func.coalesce(func.sum(models.Deposit.deposit_amount), 0).label("TotalDepositAmount"),
+                     func.coalesce(func.sum(models.Withdrawal.amount ), 0).label("TotalWithdrawalAmount")).\
+        join(models.Deposit,models.Member.Member_id == models.Deposit.member_id, isouter=True).\
+        join(models.Withdrawal, models.Member.Member_id == models.Withdrawal.member_id, isouter=True).\
+        filter(models.Member.Member_id == member_id).\
+        group_by(models.Member.Member_id,models.Member.username, models.Member.Email).first()
+    
+    # Check if the query result is None
+    if query is None:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    # Calculate the transaction status
+    total_deposit_amount = query.TotalDepositAmount
+    total_withdrawal_amount = query.TotalWithdrawalAmount
+    transaction_status = "Transaction can occur" if total_deposit_amount >= total_withdrawal_amount \
+        else "Transaction cannot occur"
+
+    # Prepare the response data
+    response_data = {
+        "MemberID": query.Member.Member_id,
+        "Username": query.Member.username,
+        "EmailAddress": query.Member.Email,
+        "TotalDepositAmount": total_deposit_amount,
+        "TotalWithdrawalAmount": total_withdrawal_amount,
+        "TransactionStatus": transaction_status
+    }
+
+    db.close()
+
+    return response_data
