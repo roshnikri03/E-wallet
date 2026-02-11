@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 import sys
 sys.path.append(r'D:/API ENV/crud.py') 
 import schemas,models
-from pymysql.err import IntegrityError
+from pymysql.err import IntegrityError # type: ignore
 
 
 
@@ -46,3 +46,27 @@ def update_user(db: Session, user_id: int, user: schemas.UserUpdate):
     db.commit()
     db.refresh(db_user)
     return  {"message":"User Updated Successfully"}
+
+def delete_user(db: Session, user_id: int):
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    db.delete(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return  {"message":"User deleted Successfully"}
+
+
+#crud operations for members
+
+def create_member(db: Session, member: schemas.MemberCreate):
+    db_member = models.Member(**member.dict())
+    db.add(db_member)
+    db.commit()
+    db.refresh(db_member)
+    return db_member
+
+
+
+def get_member(db: Session, member_id: int):
+    return db.query(Member).filter(Member.Member_id == member_id).first()
